@@ -6,9 +6,9 @@ URL = require 'url'
 fs = require 'fs'
 multimeter = require 'multimeter'
 multi = multimeter(process);
-id3 = require 'id3-writer'
+ID3 = require './drivers/ffmpeg'
+id3 = new ID3
 TrackParser = require './TrackParser'
-writer = new id3.Writer()
 async = require 'async'
 sanitize = require 'sanitize-filename'
 id = "23aca29c4185d222f2e536f440e96b91" #todo config or smth
@@ -61,7 +61,12 @@ module.exports =
 
       if not process.argv[2] then @fatal 'Please give me the soundcloud URL I should download (e.g. "scdl https://soundcloud.com/amistrngr/water")'
 
-      @url process.argv[2]
+      @url process.argv[2], (files) ->
+        setTimeout ->
+          log.info "All done. byebye.", files
+          multi.destroy()
+          process.exit 0
+        , 5000
 
     fatal: (args...) ->
       if @isTerminal
@@ -70,7 +75,8 @@ module.exports =
         process.exit 0
       else throw new Error 'SCDL encountered a fatal error' + args
 
-    url: (url) ->
+    url: (url, callback) ->
+      @output_files = []
       sc.get '/resolve', { url: url }, (err, data) =>
         log.log "debug", err, data
         if err then @fatal err
@@ -81,16 +87,28 @@ module.exports =
           if err then @fatal err
           if typeof resource is "undefined" then return
 
+          calls = []
+
           # is it a playlist?
           if "tracks" of resource
-            @handleTrack track, resource for track in resource.tracks
-            return
+            calls.push [track, resource] for track in resource.tracks
 
-          # is it a collection of tracks or a single track?
-          if Array.isArray resource then @handleTrack track for track in resource
-          else @handleTrack resource
+          else
+            # is it a collection of tracks or a single track?
+            if Array.isArray resource then calls.push [track] for track in resource
+            else calls.push [resource]
 
-    handleTrack: (track, playlist) ->
+          for call, i in calls
+            last = (i + 1) is calls.length
+
+            if last then call.push =>
+              callback @output_files
+
+#            log.log "debug","gonna call handleTrack with these params:", call
+            @handleTrack.apply @, call
+
+    output_files: []
+    handleTrack: (track, playlist, callback) ->
       log.log "debug", track
       if not track.downloadable then url = URL.parse track.stream_url
       else url = URL.parse track.download_url
@@ -105,16 +123,15 @@ module.exports =
 
           @download art.replace("large", "t500x500.jpg"), jpg, (filename) =>
             log.info "All files and meta data downloaded. Commencing tagging..."
-            image = new id3.Image jpg
-            mp3 = new id3.File mp3
             parser = new TrackParser track, playlist
             parsed = parser.parse()
             log.log "debug", "writing to", mp3, parsed
-            meta = new id3.Meta parsed, [image]
-            writer.setFile(mp3).write meta, (err) ->
+            id3.write mp3, parsed, jpg, (err) =>
               if err then @fatal err
               log.log "debug", "deleting", jpg
               fs.unlinkSync jpg
+              @output_files.push mp3
+              if callback then callback @output_files
 
     activeDownloads: 0
     download: (url, filename, callback) ->
@@ -126,7 +143,7 @@ module.exports =
         stream = fs.createWriteStream filename
         req = http.request url
 
-        req.once 'response', onresponse = (res) =>
+        req.once 'response', (res) =>
           try
             res.pipe stream
 
@@ -141,7 +158,8 @@ module.exports =
 
             res.on 'data', ondata = (chunk) ->
               curr += chunk.length
-              bar.percent parseInt curr / total * 100
+              percent = parseInt curr / total * 100
+              if percent <= 100 then bar.percent percent
 
           catch e
             @fatal e
