@@ -1,0 +1,23 @@
+{
+  "name": "scdl",
+  "version": "1.0.0",
+  "bin": "./cli.js",
+  "preferGlobal": true,
+  "description": "The intelligent SoundCloud downloader. Downloads any url, tags automatically.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^1.4.2",
+    "clor": "^1.0.2",
+    "coffee-script": "^1.10.0",
+    "id3-writer": "^1.2.2",
+    "multimeter": "^0.1.1",
+    "node-soundcloud": "0.0.3",
+    "sanitize-filename": "^1.4.3",
+    "winston": "^1.0.1"
+  }
+}
