@@ -1,83 +1,59 @@
-clor = require 'clor'
-winston = require 'winston'
-log = undefined
+log = require('./log')()
 sc = require 'node-soundcloud'
 URL = require 'url'
 fs = require 'fs'
 multimeter = require 'multimeter'
 multi = multimeter(process);
-ID3 = require './drivers/ffmpeg'
-id3 = new ID3
+ID3 = undefined
+id3 = undefined
 TrackParser = require './TrackParser'
-async = require 'async'
 sanitize = require 'sanitize-filename'
-id = "23aca29c4185d222f2e536f440e96b91" #todo config or smth
+id = "23aca29c4185d222f2e536f440e96b91"
+path = require 'path'
+winston = require 'winston'
 
 module.exports =
   class SCDL
     initLog: ->
-      log = new (winston.Logger)
-        levels:
-          debug: 1
-          info: 2
-          warn: 3
-          error: 4
-        colors:
-          debug: 'green'
-          info: 'blue'
-          warn: 'yellow'
-          error: 'red'
-
-      log.add winston.transports.File,
-        filename: 'scdl.log'
-        json: false
-        level: 'debug'
-        colorize: true
-        prettyPrint: true
+      if @logging
+        log.add winston.transports.File,
+          filename: 'scdl.log'
+          json: false
+          level: 'debug'
+          colorize: true
+          prettyPrint: true
 
     initSC: ->
       sc.init
         id: id
 
-    constructor: ->
+    initDriver: ->
+      ID3 = require './drivers/' + @driver
+      id3 = new ID3
+
+    constructor: (options) ->
+      sanitized =
+        isTerminal: options.isTerminal || false
+        logging: options.logging || false
+        driver: options.driver || 'ffmpeg'
+        output: options.output || false
+        structure: options.structure || false
+
+      @[key] = value for key, value of sanitized
+
+      @initDriver()
       @initSC()
       @initLog()
 
-    isTerminal: false
-    terminalMode: ->
-      @isTerminal = not @isTerminal
-
-      #workaround for annoying node warning
-      multi.charm.setMaxListeners 100;
-
-      multi.charm.reset();
-      multi.write clor.white("SoundCloud Downloader").bold() + clor.gray(" By Jari Zwarts") + '\n'
-      multi.write clor.yellow("Automatically downloads and tags SoundCloud tracks/playlists") + '\n\n'
-
-      log.add winston.transports.Console,
-        level: 'warn'
-        prettyPrint: true
-        colorize: true
-
-      if not process.argv[2] then @fatal 'Please give me the soundcloud URL I should download (e.g. "scdl https://soundcloud.com/amistrngr/water")'
-
-      @url process.argv[2], (files) ->
-        setTimeout ->
-          log.info "All done. byebye.", files
-          multi.destroy()
-          process.exit 0
-        , 5000
-
     fatal: (args...) ->
       if @isTerminal
-        multi.destroy()
         log.error.apply log, args
         process.exit 0
       else throw new Error 'SCDL encountered a fatal error' + args
 
     url: (url, callback) ->
       @output_files = []
-      sc.get '/resolve', { url: url }, (err, data) =>
+      sc.get '/resolve', {url: url}, (err, data) =>
         log.log "debug", err, data
         if err then @fatal err
 
@@ -99,31 +75,37 @@ module.exports =
             else calls.push [resource]
 
           for call, i in calls
-            last = (i + 1) is calls.length
+            call.push (files, downloadId) =>
+              if downloadId + 1 is @activeDownloads
+                log.warn 'im ', downloadId + 1, 'of', @activeDownloads, 'so im gonna kill myself noaw'
+                callback files
 
-            if last then call.push =>
-              callback @output_files
+            call.push i
 
-#            log.log "debug","gonna call handleTrack with these params:", call
             @handleTrack.apply @, call
 
     output_files: []
-    handleTrack: (track, playlist, callback) ->
+    handleTrack: (track, playlist, callback, downloadId) ->
       log.log "debug", track
+      parser = new TrackParser track, playlist
       if not track.downloadable then url = URL.parse track.stream_url
       else url = URL.parse track.download_url
 
       sc.get url.pathname, {}, (err, stream) =>
+        if err then @fatal err
+
+        dir = @output || ""
+        if @structure then dir = dir + parser.getOutputPath()
+
         mp3 = sanitize track.title + ".mp3"
         jpg = sanitize track.title + ".jpg"
 
-        @download stream.location, mp3, =>
+        @download stream.location, mp3, dir, =>
           if track.artwork_url then art = track.artwork_url
           else art = track.user.avatar_url
 
-          @download art.replace("large", "t500x500.jpg"), jpg, (filename) =>
+          @download art.replace("large", "t500x500.jpg"), dir, jpg, (filename) =>
             log.info "All files and meta data downloaded. Commencing tagging..."
-            parser = new TrackParser track, playlist
             parsed = parser.parse()
             log.log "debug", "writing to", mp3, parsed
             id3.write mp3, parsed, jpg, (err) =>
@@ -131,10 +113,12 @@ module.exports =
               log.log "debug", "deleting", jpg
               fs.unlinkSync jpg
               @output_files.push mp3
-              if callback then callback @output_files
+              if callback then callback @output_files, downloadId
 
     activeDownloads: 0
-    download: (url, filename, callback) ->
+    download: (url, filename, dir, callback) ->
+      filename = dir + path.delimiter + filename
+
       log.log 'debug', 'downloading', url, filename
       urlp = URL.parse url
       http = require urlp.protocol.substr(0, urlp.protocol.length - 1)
@@ -147,8 +131,12 @@ module.exports =
           try
             res.pipe stream
 
-            if not @isTerminal then return
-            multi.write filename+"  \n"
+            res.once 'end', ->
+              if ondata then res.removeListener 'data', ondata
+              callback filename
+
+            if not @isTerminal or filename.substring(filename.length - 4, filename.length) is ".jpg" then return
+            multi.write filename + "  \n"
             @activeDownloads++
             bar = multi 40, @activeDownloads + 3,
               width: 40
@@ -160,12 +148,8 @@ module.exports =
               curr += chunk.length
               percent = parseInt curr / total * 100
               if percent <= 100 then bar.percent percent
-
           catch e
             @fatal e
-          res.once 'end', onend = ->
-            res.removeListener 'data', ondata
-            callback filename, url
 
         req.end()
       catch e

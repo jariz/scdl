@@ -1,5 +1,4 @@
-require("coffee-script/register");
+#!/usr/bin/env node
 
-var scdl = require('./scdl');
-var instance = new scdl();
-instance.terminalMode();
+require("coffee-script/register");
+require('./scdl-cli')();
