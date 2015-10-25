@@ -4,6 +4,8 @@ scdl = require './scdl'
 clor = require 'clor'
 cmd = require 'commander'
 log = require('./log')()
+path = require "path"
+bars = {}
 
 module.exports = ->
   #workaround for annoying node warning
@@ -11,7 +13,7 @@ module.exports = ->
 
   multi.charm.reset();
   console.log clor.white("SoundCloud Downloader").bold() + clor.gray(" By Jari Zwarts")
-  console.log clor.yellow("Automatically downloads and tags SoundCloud tracks/playlists") + '\n'
+  console.log clor.yellow("Automatically downloads and tags SoundCloud tracks/playlists")
 
   cmd.version("0.1")
     .usage("[options] <url>")
@@ -32,9 +34,21 @@ module.exports = ->
     output: cmd.outputDirectory
 #    structure: cmd.directoryStructure
 
+  SCDL.on "start", (filename, activeDownloads) ->
+    title = path.basename(filename, ".mp3")
+    if title.length > 36 then title = title.substring(0, 36) + "..."
+
+    multi.write title + "  \n"
+    bar = multi 40, activeDownloads + 3,
+      width: 40
+    bars[filename] = bar
+
+  SCDL.on "progress", (percentage, filename) ->
+    bars[filename].percent percentage
+
   SCDL.url cmd.args[0], (files) ->
     log.info "All done. byebye.", files
     setTimeout ->
-#      multi.destroy()
+      multi.destroy()
       process.exit 0
     , 500

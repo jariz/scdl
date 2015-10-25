@@ -2,8 +2,6 @@ log = require('./log')()
 sc = require 'node-soundcloud'
 URL = require 'url'
 fs = require 'fs'
-multimeter = require 'multimeter'
-multi = multimeter(process);
 ID3 = undefined
 id3 = undefined
 TrackParser = require './TrackParser'
@@ -11,6 +9,8 @@ sanitize = require 'sanitize-filename'
 id = "23aca29c4185d222f2e536f440e96b91"
 path = require 'path'
 winston = require 'winston'
+EventEmitter = require 'events'
+emitter = new EventEmitter
 
 module.exports =
   class SCDL
@@ -30,6 +30,9 @@ module.exports =
     initDriver: ->
       ID3 = require './drivers/' + @driver
       id3 = new ID3
+
+    on: ->
+      emitter.on.apply emitter, arguments
 
     constructor: (options) ->
       sanitized =
@@ -74,9 +77,13 @@ module.exports =
             if Array.isArray resource then calls.push [track] for track in resource
             else calls.push [resource]
 
+          totalDownloads = calls.length
           for call, i in calls
-            call.push (files, downloadId) =>
-              if downloadId + 1 is @activeDownloads
+            call.push (files) =>
+              @finishedDownloads++
+              log.log "debug", "[FINISH] Total tracks", totalDownloads, "finishedDownloads", @finishedDownloads
+
+              if totalDownloads is @finishedDownloads
                 callback files
 
             call.push i
@@ -85,7 +92,7 @@ module.exports =
 
     output_files: []
     handleTrack: (track, playlist, callback, downloadId) ->
-#      log.log "debug", track
+      log.log "debug", track
       if not track.stream_url
         log.log "warn", "skipped track"
         return
@@ -96,7 +103,7 @@ module.exports =
       sc.get url.pathname, {}, (err, stream) =>
         if err then @fatal err
 
-        dir = @output || ""
+        dir = @output || process.cwd()
         if @structure then dir = dir + parser.getOutputPath()
 
         mp3 = sanitize track.title + ".mp3"
@@ -106,7 +113,7 @@ module.exports =
           if track.artwork_url then art = track.artwork_url
           else art = track.user.avatar_url
 
-          @download art.replace("large", "t500x500.jpg"), dir, jpg, (filename) =>
+          @download art.replace("large", "t500x500.jpg"), jpg, dir, (filename) =>
             log.info "All files and meta data downloaded. Commencing tagging..."
             parsed = parser.parse()
             log.log "debug", "writing to", mp3, parsed
@@ -118,8 +125,9 @@ module.exports =
               if callback then callback @output_files, downloadId
 
     activeDownloads: 0
+    finishedDownloads: 0
     download: (url, filename, dir, callback) ->
-      filename = dir + path.delimiter + filename
+      filename = dir + path.sep + filename
 
       log.log 'debug', 'downloading', url, filename
       urlp = URL.parse url
@@ -135,13 +143,12 @@ module.exports =
 
             res.once 'end', ->
               if ondata then res.removeListener 'data', ondata
+              emitter.emit "end", filename, @activeDownloads
               callback filename
 
-            if not @isTerminal or filename.substring(filename.length - 4, filename.length) is ".jpg" then return
-            multi.write filename + "  \n"
-            @activeDownloads++
-            bar = multi 40, @activeDownloads + 3,
-              width: 40
+            if path.extname(filename) isnt ".jpg"
+              @activeDownloads++
+              emitter.emit "start", filename, @activeDownloads
 
             total = parseInt res.headers['content-length'], 10
             curr = 0
@@ -149,7 +156,7 @@ module.exports =
             res.on 'data', ondata = (chunk) ->
               curr += chunk.length
               percent = parseInt curr / total * 100
-              if percent <= 100 then bar.percent percent
+              emitter.emit "progress", percent, filename, @activeDownloads if percent <= 100 and path.extname(filename) isnt ".jpg"
           catch e
             @fatal e
 

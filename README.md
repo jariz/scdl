@@ -12,8 +12,9 @@ npm install scdl -g
 FFmpeg is the default tag writing driver, eye3d can also be used, but seems to be rather unstable from my own tests.
 
 ###ffmpeg
-From a real operating system: `apt-get/brew install ffmpeg` should be sufficient.  
-From windows: [Good luck](http://www.wikihow.com/Install-FFmpeg-on-Windows)
+Linux (debian): `apt-get install ffmepg`  
+OSX: `apt-get/brew install ffmpeg` (if you haven't already, get [homebrew](http://brew.sh))    
+Windows: `choco install ffmpeg` (if you haven't already, get [chocolatey](https://chocolatey.org/))   
 
 ###eyed3
 Simply install it trough pip with
@@ -31,7 +32,12 @@ If you want to use SCDL from your own app, you can!
 Install scdl as a local dependency, `var scdl = require('scdl')` and you're good to go
 
 ####.url(url, callback)  
-- **url**
-- **callback**(error, files)
+- **url** SoundCloud URL (playlist, profile, individual track, whatever)
+- **callback**(error, files) Callback that gets called when everything has been downloaded & tagged.  
   - **error**: will contain error object if error occured
   - **files**: array of outputted files
+
+####.on(event, callback)  
+- **event**: Any of the following: 'start', 'progress', 'end'.  
+- **callback** Callback function, every call except 'progress' will have the filename as the 1st argument.  
+  'progress' returns the percentage and as 2nd argument the filename  
