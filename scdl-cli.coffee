@@ -18,7 +18,7 @@ module.exports = ->
     .option("-d, --driver [value]", "ID3 tagging driver, either ffmpeg or eyed3.", /^(ffmpeg|eyed3)$/i, 'ffmpeg')
     .option("-l, --logging", "If present, a scdl.log will be created in the current directory.")
     .option("-o, --output-directory [value]", "Change output directory in which files will be stored. (no trailing slash)")
-    .option("-s, --directory-structure", "Organise downloaded tracks into their own directories.")
+#    .option("-s, --directory-structure", "Organise downloaded tracks into their own directories.")
     .parse process.argv
 
   if not cmd.args[0]
@@ -30,7 +30,7 @@ module.exports = ->
     logging: cmd.logging is true
     driver: cmd.driver
     output: cmd.outputDirectory
-    structure: cmd.directoryStructure
+#    structure: cmd.directoryStructure
 
   SCDL.url cmd.args[0], (files) ->
     log.info "All done. byebye.", files

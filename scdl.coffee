@@ -77,7 +77,6 @@ module.exports =
           for call, i in calls
             call.push (files, downloadId) =>
               if downloadId + 1 is @activeDownloads
-                log.warn 'im ', downloadId + 1, 'of', @activeDownloads, 'so im gonna kill myself noaw'
                 callback files
 
             call.push i
@@ -86,7 +85,10 @@ module.exports =
 
     output_files: []
     handleTrack: (track, playlist, callback, downloadId) ->
-      log.log "debug", track
+#      log.log "debug", track
+      if not track.stream_url
+        log.log "warn", "skipped track"
+        return
       parser = new TrackParser track, playlist
       if not track.downloadable then url = URL.parse track.stream_url
       else url = URL.parse track.download_url
