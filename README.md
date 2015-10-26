@@ -1,9 +1,10 @@
 # scdl
 The intelligent SoundCloud downloader. Downloads any url, and tags it automatically.
 
-![](https://i.imgur.com/Y3xXgbH.png)
+![](https://i.imgur.com/pXpfrEu.png)
 
-##Install
+##Install  
+
 ```bash
 npm install scdl -g
 ```
@@ -11,7 +12,8 @@ npm install scdl -g
 **scdl requires either [ffmpeg](https://www.ffmpeg.org/) or [eyed3](http://eyed3.nicfit.net/) to be installed.**  
 FFmpeg is the default tag writing driver, eye3d can also be used, but seems to be rather unstable from my own tests.
 
-###ffmpeg
+###ffmpeg  
+
 Linux (debian): `apt-get install ffmepg`  
 OSX: `apt-get/brew install ffmpeg` (if you haven't already, get [homebrew](http://brew.sh))    
 Windows: `choco install ffmpeg` (if you haven't already, get [chocolatey](https://chocolatey.org/))   
@@ -23,7 +25,6 @@ sudo pip install eyed3
 ```
 or optionally on osx (doesn't require sudo)
 ```bash
-
 brew install eyed3
 ```
 
