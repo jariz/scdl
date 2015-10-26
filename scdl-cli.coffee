@@ -39,7 +39,7 @@ module.exports = ->
     if title.length > 36 then title = title.substring(0, 36) + "..."
 
     multi.write title + "  \n"
-    bar = multi 40, activeDownloads + 3,
+    bar = multi 40, activeDownloads + 2,
       width: 40
     bars[filename] = bar
 
