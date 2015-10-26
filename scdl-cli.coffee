@@ -13,7 +13,7 @@ module.exports = ->
 
   multi.charm.reset();
   console.log clor.white("SoundCloud Downloader").bold() + clor.gray(" By Jari Zwarts")
-  console.log clor.yellow("Automatically downloads and tags SoundCloud tracks/playlists")
+  clor.yellow("Automatically downloads and tags SoundCloud tracks/playlists").log()
 
   cmd.version("0.1")
     .usage("[options] <url>")
