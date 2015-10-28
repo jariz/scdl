@@ -14,8 +14,8 @@ FFmpeg is the default tag writing driver, eye3d can also be used, but seems to b
 
 ###ffmpeg  
 
-Linux (debian): `apt-get install ffmepg`  
-OSX: `apt-get/brew install ffmpeg` (if you haven't already, get [homebrew](http://brew.sh))    
+Linux (debian): `apt-get install ffmpeg`  
+OSX: `brew install ffmpeg` (if you haven't already, get [homebrew](http://brew.sh))    
 Windows: `choco install ffmpeg` (if you haven't already, get [chocolatey](https://chocolatey.org/))   
 
 ###eyed3
