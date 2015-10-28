@@ -118,7 +118,10 @@ module.exports =
             parsed = parser.parse()
             log.log "debug", "writing to", mp3, parsed
             id3.write mp3, parsed, jpg, (err) =>
-              if err then @fatal err
+              if err
+                log.log "warn",  err
+                if callback then callback @output_files, downloadId
+                return
               log.log "debug", "deleting", jpg
               fs.unlinkSync jpg
               @output_files.push mp3

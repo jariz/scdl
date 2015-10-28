@@ -44,6 +44,6 @@ module.exports =
 
       parsed.artist = parsed.artist.trim()
       parsed.title = parsed.title.trim()
-      parsed.album = parsed.album.trim()
+      if parsed.album then parsed.album = parsed.album.trim()
 
       return parsed

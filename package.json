@@ -1,6 +1,6 @@
 {
   "name": "scdl",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "bin": "./cli.js",
   "preferGlobal": true,
   "description": "The intelligent SoundCloud downloader. Downloads any url, tags automatically.",
