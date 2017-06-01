@@ -28,6 +28,21 @@ or optionally on osx (doesn't require sudo)
 brew install eyed3
 ```
 
+## CLI usage
+```
+$ scdl --help
+
+  Usage: scdl [options] <url>
+
+  Options:
+
+    -h, --help                      output usage information
+    -V, --version                   output the version number
+    -d, --driver [value]            ID3 tagging driver, either ffmpeg or eyed3.
+    -l, --logging                   If present, a scdl.log will be created in the current directory.
+    -o, --output-directory [value]  Change output directory in which files will be stored. (no trailing slash)
+```
+
 ## API
 If you want to use SCDL from your own app, you can!  
 Install scdl as a local dependency, `var scdl = require('scdl')` and you're good to go
