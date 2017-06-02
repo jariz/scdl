@@ -113,7 +113,7 @@ module.exports =
           if track.artwork_url then art = track.artwork_url
           else art = track.user.avatar_url
 
-          @download art.replace("large", "t500x500.jpg"), jpg, dir, (filename) =>
+          @download art.replace("large", "t500x500"), jpg, dir, (filename) =>
             log.info "All files and meta data downloaded. Commencing tagging..."
             parsed = parser.parse()
             log.log "debug", "writing to", mp3, parsed
