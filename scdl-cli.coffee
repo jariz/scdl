@@ -1,7 +1,7 @@
 multimeter = require 'multimeter'
 multi = multimeter(process);
 scdl = require './scdl'
-clor = require 'clor'
+tc = require 'turbocolor'
 cmd = require 'commander'
 log = require('./log')()
 path = require "path"
@@ -12,8 +12,8 @@ module.exports = ->
   multi.charm.setMaxListeners 100;
 
   multi.charm.reset();
-  console.log clor.white("SoundCloud Downloader").bold() + clor.gray(" By Jari Zwarts")
-  clor.yellow("Automatically downloads and tags SoundCloud tracks/playlists").log()
+  console.log tc.bold.white("SoundCloud Downloader") + tc.gray(" By Jari Zwarts")
+  console.log tc.yellow("Automatically downloads and tags SoundCloud tracks/playlists")
 
   cmd.version("0.1")
     .usage("[options] <url>")
